@@ -1,5 +1,9 @@
 use mini_redis::{client, Result};
 
+async fn say_word() {
+    println!("world");
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
     // Open a connection to the local mini-redis server.
@@ -12,6 +16,11 @@ async fn main() -> Result<()> {
     let res = client.get("hello").await?;
 
     println!("Got value from the server: result={:?}", res);
+
+    let op = say_word();
+
+    println!("Hello again, ");
+    op.await;
 
     Ok(())
 }
