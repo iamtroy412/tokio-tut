@@ -1,4 +1,4 @@
-use tokio::io;
+use tokio::io::{self, AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpListener;
 
 #[tokio::main]
@@ -9,11 +9,27 @@ async fn main() -> io::Result<()> {
         let (mut socket, _) = listener.accept().await?;
 
         tokio::spawn(async move {
-            // Copy data here
-            let (mut rd, mut wr) = socket.split();
+            let mut buf = [0; 1024];
 
-            if io::copy(&mut rd, &mut wr).await.is_err() {
-                eprintln!("failed to copy data");
+            loop {
+                match socket.read(&mut buf).await {
+                    // Return value of `Ok(0)` means that the remote
+                    // has closed.
+                    Ok(0) => return,
+                    Ok(n) => {
+                        // Copy the data back to the socket
+                        if socket.write_all(&buf[..n]).await.is_err() {
+                            // Unexpected error, nothing to really do here
+                            // so just stop processsing.
+                            return;
+                        }
+                    }
+                    Err(_) => {
+                        // Unexpected socket error. Nothing to really do here
+                        // so just stop processsing.
+                        return;
+                    }
+                }
             }
         });
     }
