@@ -8,8 +8,7 @@ type Db = Arc<Mutex<HashMap<String, Bytes>>>;
 
 #[tokio::main]
 async fn main() -> mini_redis::Result<()> {
-    let subscriber = tracing_subscriber::FmtSubscriber::new();
-    tracing::subscriber::set_global_default(subscriber)?;
+    console_subscriber::init();
     // Bind the listen to the address.
     let listener = TcpListener::bind("127.0.0.1:6379").await.unwrap();
 
