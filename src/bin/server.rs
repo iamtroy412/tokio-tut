@@ -7,7 +7,9 @@ use std::sync::{Arc, Mutex};
 type Db = Arc<Mutex<HashMap<String, Bytes>>>;
 
 #[tokio::main]
-async fn main() {
+async fn main() -> mini_redis::Result<()> {
+    let subscriber = tracing_subscriber::FmtSubscriber::new();
+    tracing::subscriber::set_global_default(subscriber)?;
     // Bind the listen to the address.
     let listener = TcpListener::bind("127.0.0.1:6379").await.unwrap();
 
@@ -30,6 +32,7 @@ async fn main() {
     }
 }
 
+#[tracing::instrument]
 async fn process(socket: TcpStream, db: Db) {
     use mini_redis::Command::{self, Get, Set};
 
@@ -41,12 +44,14 @@ async fn process(socket: TcpStream, db: Db) {
     while let Some(frame) = connection.read_frame().await.unwrap() {
         let response = match Command::from_frame(frame).unwrap() {
             Set(cmd) => {
+                tracing::info!("Set: {:?}", cmd); 
                 let mut db = db.lock().unwrap();
                 // The value is stored as `Bytes`
                 db.insert(cmd.key().to_string(), cmd.value().clone());
                 Frame::Simple("OK".to_string())
             }
             Get(cmd) => {
+                tracing::info!("Get: {:?}", cmd);
                 let db = db.lock().unwrap();
                 if let Some(value) = db.get(cmd.key()) {
                     // `Frame::Bulk` expects data to be of type `Bytes`. This
