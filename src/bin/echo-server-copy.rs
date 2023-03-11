@@ -9,7 +9,7 @@ async fn main() -> io::Result<()> {
         let (mut socket, _) = listener.accept().await?;
 
         tokio::spawn(async move {
-            let mut buf = [0; 1024];
+            let mut buf = vec![0; 1024];
 
             loop {
                 match socket.read(&mut buf).await {
